@@ -1,0 +1,99 @@
+# How to read each dataset. Paths are relative to paths.raw in study.yaml.
+# Folder and column names below follow the usual public downloads but were written
+# from memory: run `drjev ingest` and read work/ingest_report.md, which compares what
+# was found with `expected_images` and lists missing files. Fix names here, not in code.
+#
+# role: internal  = EyePACS (train / dev / calibration / internal test)
+#       external  = locked external test, never trained on
+#       q3_train  = used only to train and calibrate the maculopathy question
+#       off       = ignored
+
+eyepacs:
+  role: internal
+  root: eyepacs
+  parts:
+    - {labels: trainLabels.csv, images: train, official_split: kaggle_train}
+    - {labels: retinopathy_solution.csv, images: test, official_split: kaggle_test}
+  id_column: image
+  grade_column: level
+  patient_regex: '^(\d+)_'
+  eye_regex: '_(left|right)$'
+  # Optional EyeQ quality labels (0 good, 1 usable, 2 reject). "Reject" images become ungradeable.
+  quality_overlays:
+    - {file: Label_EyeQ_train.csv, id_column: image, quality_column: quality, ungradable_values: [2], optional: true}
+    - {file: Label_EyeQ_test.csv, id_column: image, quality_column: quality, ungradable_values: [2], optional: true}
+  expected_images: {kaggle_train: 35126, kaggle_test: 53576}
+
+messidor2:
+  role: external
+  root: messidor2
+  parts:
+    - {labels: messidor_data.csv, images: IMAGES, official_split: all}
+  id_column: image_id
+  grade_column: adjudicated_dr_grade
+  gradable_column: adjudicated_gradable
+  gradable_true_values: [1]
+  maculopathy_column: adjudicated_dme
+  maculopathy_positive: [1]
+  # patient_column: add one here if you build an eye-pairing file; without it each image is its own cluster
+  expected_images: {all: 1748}
+
+ddr:
+  role: external
+  root: ddr/DR_grading
+  parts:
+    - {labels: train.txt, images: train, official_split: train}
+    - {labels: valid.txt, images: valid, official_split: valid}
+    - {labels: test.txt, images: test, official_split: test}
+  read: {sep: ' ', header: false, names: [image, label]}
+  id_column: image
+  grade_column: label
+  ungradable_grades: [5]
+  test_parts: [test]          # only the official test part is the locked test; the rest stays unused
+  expected_images: {train: 6835, valid: 2733, test: 4105}
+
+aptos:
+  role: external
+  root: aptos2019
+  parts:
+    - {labels: train.csv, images: train_images, official_split: labelled}
+  id_column: id_code
+  grade_column: diagnosis
+  expected_images: {labelled: 3662}
+
+idrid:
+  role: external
+  root: idrid/B. Disease Grading
+  parts:
+    - {labels: "2. Groundtruths/a. IDRiD_Disease Grading_Training Labels.csv", images: "1. Original Images/a. Training Set", official_split: train}
+    - {labels: "2. Groundtruths/b. IDRiD_Disease Grading_Testing Labels.csv", images: "1. Original Images/b. Testing Set", official_split: test}
+  id_column: Image name
+  grade_column: Retinopathy grade
+  maculopathy_column: Risk of macular edema
+  maculopathy_positive: [1, 2]
+  expected_images: {train: 413, test: 103}
+
+mbrset:
+  role: external
+  root: mbrset
+  parts:
+    - {labels: labels.csv, images: images, official_split: all}
+  id_column: file
+  grade_column: final_icdr
+  patient_column: patient
+  maculopathy_column: final_edema
+  maculopathy_positive: [1, "yes"]
+  missing_grade_is_ungradable: true
+  expected_images: {all: 5164}
+
+brset:
+  role: q3_train
+  root: brset
+  parts:
+    - {labels: labels.csv, images: fundus_photos, official_split: all}
+  id_column: image_id
+  grade_column: DR_ICDR
+  patient_column: patient_id
+  maculopathy_column: macular_edema
+  maculopathy_positive: [1]
+  expected_images: {all: 16266}

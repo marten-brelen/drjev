@@ -1,0 +1,9 @@
+# Machine profile used when study.yaml names none: no expectations, modest parallelism.
+name: generic
+expect: {}
+workers: {preprocess: 8, analysis: 4, dataloader: 4}
+memory: {floor_gb: 4, free_before_model_gb: 0, wait_seconds: 0, warn_if_swap: false, launch_prefix: ""}
+env: {TOKENIZERS_PARALLELISM: "false"}
+torch_index_url: ""
+training: {imajev: {batch_size: 8, accumulate: 4, token_budget: 8000}, specialist: {batch_size: 32}}
+disk: {min_free_gb: 50}

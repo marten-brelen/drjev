@@ -1,0 +1,71 @@
+# The five clinical questions (protocol section 6.2). DRAFT wording: confirm with a clinician,
+# then freeze with `drjev lock`. Variant 0 is the primary wording; variants 1 and 2 are the
+# paraphrases used for the prompt-sensitivity analysis.
+version: 1
+unknown_option: "unknown: cannot be determined from this photograph"
+
+questions:
+  q1_gradeable:
+    kind: noul
+    allow_unknown: false          # "no" is the can't-tell answer
+    instructions:
+      - "Is this fundus photograph of sufficient quality to grade diabetic retinopathy?"
+      - "Can diabetic retinopathy be graded reliably from this fundus photograph?"
+      - "Is the image quality of this retinal photograph adequate for diabetic retinopathy grading?"
+    if_no:  "ungradeable: the retina cannot be assessed because of blur, poor exposure, media opacity, artefact or wrong field"
+    if_yes: "gradeable: the macula, optic disc and vascular arcades are visible clearly enough to grade"
+
+  q2_grade:
+    kind: score
+    allow_unknown: true
+    instructions:
+      - "Grade the severity of diabetic retinopathy in this fundus photograph."
+      - "What is the International Clinical Diabetic Retinopathy severity level shown in this fundus photograph?"
+      - "Assign a diabetic retinopathy severity grade to this retinal photograph."
+    labels: ["no DR", "mild NPDR", "moderate NPDR", "severe NPDR", "PDR"]
+    levels:
+      - - "No apparent retinopathy. No abnormalities."
+        - "Mild non-proliferative retinopathy. Microaneurysms only."
+        - "Moderate non-proliferative retinopathy. More than microaneurysms but less than severe."
+        - "Severe non-proliferative retinopathy. Extensive intraretinal haemorrhages in all four quadrants, venous beading in two or more quadrants, or prominent intraretinal microvascular abnormalities, with no signs of proliferative disease."
+        - "Proliferative retinopathy. Neovascularisation, or vitreous or preretinal haemorrhage."
+      - - "No diabetic retinopathy: no microaneurysms, haemorrhages or other diabetic lesions."
+        - "Mild NPDR: microaneurysms are the only abnormality."
+        - "Moderate NPDR: haemorrhages, exudates or cotton wool spots beyond microaneurysms, not meeting the criteria for severe."
+        - "Severe NPDR: any of more than 20 intraretinal haemorrhages in each of four quadrants, definite venous beading in two or more quadrants, or prominent IRMA in one or more quadrants; no neovascularisation."
+        - "PDR: new vessels on the disc or elsewhere, or vitreous or preretinal haemorrhage."
+      - - "Normal: no signs of diabetic retinopathy."
+        - "Mild non-proliferative: only microaneurysms are present."
+        - "Moderate non-proliferative: lesions beyond microaneurysms but short of the 4-2-1 rule."
+        - "Severe non-proliferative: meets the 4-2-1 rule (haemorrhages in four quadrants, venous beading in two, or IRMA in one) without new vessels."
+        - "Proliferative: new vessel formation, or vitreous or preretinal bleeding."
+
+  q3_maculopathy:
+    kind: noul
+    allow_unknown: true
+    instructions:
+      - "Is diabetic maculopathy present in this fundus photograph?"
+      - "Does this fundus photograph show signs of diabetic maculopathy?"
+      - "Are there diabetic lesions at or near the macula in this retinal photograph?"
+    if_no:  "absent: no exudates, haemorrhages or thickening at or near the macula"
+    if_yes: "present: exudates, haemorrhages or retinal thickening at or near the macula"
+
+  q4_refer:
+    kind: noul
+    allow_unknown: true
+    instructions:
+      - "Does this fundus photograph show referable diabetic eye disease: moderate non-proliferative retinopathy or worse, or any maculopathy?"
+      - "Is referable diabetic eye disease present in this fundus photograph, meaning moderate non-proliferative retinopathy or worse, or any diabetic maculopathy?"
+      - "Does this retinal photograph show diabetic retinopathy of moderate non-proliferative severity or worse, or diabetic maculopathy, which would warrant referral?"
+    if_no:  "not referable: no retinopathy or mild non-proliferative retinopathy only, and no maculopathy"
+    if_yes: "referable: moderate non-proliferative retinopathy or worse, or any maculopathy"
+
+  q5_sight:
+    kind: noul
+    allow_unknown: true
+    instructions:
+      - "Does this fundus photograph show sight-threatening diabetic eye disease: severe non-proliferative retinopathy, proliferative retinopathy, or any maculopathy?"
+      - "Is sight-threatening diabetic eye disease present in this fundus photograph, meaning severe non-proliferative or proliferative retinopathy, or any diabetic maculopathy?"
+      - "Does this retinal photograph show severe non-proliferative retinopathy, proliferative retinopathy or diabetic maculopathy, which threaten sight?"
+    if_no:  "not sight-threatening: no retinopathy, mild or moderate non-proliferative retinopathy, and no maculopathy"
+    if_yes: "sight-threatening: severe non-proliferative retinopathy, proliferative retinopathy, or any maculopathy"

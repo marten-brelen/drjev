@@ -1,0 +1,37 @@
+# Machine profile: NVIDIA DGX Spark, 128 GB (GB10, 20 Arm cores, CUDA 13, memory shared by CPU and GPU).
+# Selected by `machine: config/machines/dgx-spark.yaml` in study.yaml. Nothing here changes a result;
+# it only controls how work is scheduled, so it is not part of the protocol lock.
+name: dgx-spark-128
+expect:
+  arch: aarch64
+  memory_gb: 110            # doctor warns below this (the 128 GB unit reports about 120 GB)
+  cuda: true
+  python: "3.12"
+
+workers:
+  preprocess: 16            # of 20 cores
+  analysis: 8               # one test set per process during the bootstrap
+  dataloader: 8             # specialist training
+
+memory:
+  # CPU and GPU share one pool, so a model that over-allocates can freeze the whole machine.
+  floor_gb: 8               # a model process is stopped if available memory falls below this
+  free_before_model_gb: 60  # wait for this much to be available before starting the next model
+  wait_seconds: 180
+  warn_if_swap: true        # swap on unified memory turns an out-of-memory error into a long freeze
+  # Optional hard cap through systemd (leave empty to rely on the floor above). `drjev doctor` tests it.
+  launch_prefix: ""         # e.g. "systemd-run --user --scope -q -p MemoryMax=100G -p MemorySwapMax=0"
+
+env:                        # set for every model process the pipeline starts
+  TRITON_PTXAS_PATH: /usr/local/cuda/bin/ptxas
+  TOKENIZERS_PARALLELISM: "false"
+  HF_HUB_DISABLE_TELEMETRY: "1"
+
+torch_index_url: https://download.pytorch.org/whl/cu130    # CUDA 13 wheels for Arm; used by scripts/setup_env.sh
+
+training:                   # conservative starting points; `drjev benchmark --train` measures the real cost
+  imajev: {batch_size: 4, accumulate: 8, token_budget: 6000}
+  specialist: {batch_size: 32}
+
+disk:
+  min_free_gb: 300          # raw datasets, processed copies, model weights and checkpoints

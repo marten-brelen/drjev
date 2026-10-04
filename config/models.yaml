@@ -1,0 +1,127 @@
+# Model runs. `drjev run` processes every run with enabled: true.
+# arm: Z zero-shot | A language LoRA | B language + vision LoRA | C base + LoRA | G generative | S specialist
+# Adapters marked UNTESTED were written from each model's documentation and have not been run
+# on a GPU: use `drjev check-model <run>` first.
+# Pin `revision` to the commit you downloaded (HfApi().model_info(repo).sha) before the locked evaluation.
+#
+# python: the interpreter of the model's own environment (made by scripts/setup_env.sh <name>). The models pin
+# library versions that conflict, so each runs in its own environment and the pipeline talks to it as a
+# separate process. `drjev doctor` checks every environment; `drjev benchmark` times every model.
+
+# How a fine-tuned imajev adapter is served: {adapter} becomes runs/drjev-<run>/best (the trainer's best checkpoint).
+imajev_finetuned_server:
+  cwd: ../imajev
+  cmd: "{python} scripts/playground/server.py --backend torch --model-bundle artifacts/model-qwen4b.json --adapter {adapter} --model-name {name} --rotations 1 --port {port}"
+  env: {PYTHONPATH: "src:scripts"}
+  ready_url: "http://127.0.0.1:{port}/v1/models"
+  startup_seconds: 600
+
+runs:
+  # ---- imajev (tested against a stub of its documented HTTP interface) ----
+  imajev4b_zs:
+    enabled: true
+    arm: Z
+    adapter: imajev_http
+    hf_repo: mohit67890/imajev-4b
+    revision: null
+    model_name: imajev-4b                    # must equal the server's --model-name; checked on the first answer
+    python: envs/imajev/bin/python
+    url: http://127.0.0.1:8765/v1/systemone
+    # Optional: let the pipeline start and stop the server. Run without --calibration: we fit our own temperature.
+    server:
+      cwd: ../imajev
+      cmd: "{python} scripts/playground/server.py --backend torch --model-bundle artifacts/model-qwen4b.json --adapter adapters/imajev-4b --model-name imajev-4b --rotations 1 --port 8765"
+      env: {PYTHONPATH: "src:scripts"}
+      ready_url: http://127.0.0.1:8765/v1/models
+      startup_seconds: 600
+
+  qwen35_4b_base:            # control: untuned base model read through the same option readout
+    enabled: true
+    arm: Z
+    adapter: imajev_http
+    hf_repo: Qwen/Qwen3.5-4B
+    revision: 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
+    url: http://127.0.0.1:8766/v1/systemone
+    python: envs/imajev/bin/python
+    model_name: qwen3.5-4b-base
+    has_abstain: true
+    server:
+      cwd: ../imajev
+      cmd: "{python} scripts/playground/server.py --backend torch --model-bundle artifacts/model-qwen4b.json --no-adapter --model-name qwen3.5-4b-base --rotations 1 --port 8766"
+      env: {PYTHONPATH: "src:scripts"}
+      ready_url: http://127.0.0.1:8766/v1/models
+      startup_seconds: 600
+
+  # ---- other Jev-style models, zero-shot (UNTESTED adapters) ----
+  neohorse4b_zs:
+    enabled: true
+    arm: Z
+    adapter: neohorse
+    python: envs/neohorse/bin/python
+    hf_repo: TokenRhythm/NeoHorse-Jev-4B
+    revision: null
+    model_dir: models/NeoHorse-Jev-4B      # full snapshot of the repo; its wheel must be pip-installed
+
+  jevomni_zs:
+    enabled: true
+    arm: Z
+    adapter: jev_omni
+    python: envs/jev_omni/bin/python
+    hf_repo: akhilaaa3/Jev-Omni
+    revision: null
+
+  autojev27b_zs:
+    enabled: true                            # 52 GB of weights: fits the 128 GB DGX Spark with nothing else loaded. Skipped if it fails to start.
+    arm: Z
+    adapter: jev27b_http
+    python: envs/jev27b/bin/python           # needs a CUDA 13 build of vLLM (see envs/README.md)
+    hf_repo: autotrust/JEV-27B-VL
+    revision: null
+    url: http://127.0.0.1:8000/v1/decide
+    server:
+      cwd: models/JEV-27B-VL                 # `hf download autotrust/JEV-27B-VL --local-dir models/JEV-27B-VL`
+      cmd: "bash -c 'source {venv}/bin/activate && bash serve.sh'"
+      ready_url: http://127.0.0.1:8000/v1/models
+      startup_seconds: 1800
+
+  visualjev4b_zs:
+    enabled: true
+    arm: Z
+    adapter: visual_jev
+    python: envs/visual_jev/bin/python
+    hf_repo: guanxuyu/visual-jev-4b-answer-sft
+    revision: null
+    base_model: Qwen/Qwen3-VL-4B-Instruct
+    repo_dir: ../Visual-Jev                  # clone of github.com/guanxuyu-sv/Visual-Jev
+    max_pixels: 200704
+
+  glance_zs:
+    enabled: true
+    arm: Z
+    adapter: glance
+    python: envs/glance/bin/python
+    hf_repo: Qwen/Qwen3-VL-4B-Instruct
+    revision: ebb281ec70b05090aa6165b016eac8ec08e71b17
+
+  # ---- fine-tuned imajev arms: three seeds each, pooled under `group` ----
+  # Train with the scripts from `drjev export-train`, then set enabled: true.
+  imajev4b_ftA_s0: {enabled: false, arm: A, group: imajev4b_ftA, seed: 0, adapter: imajev_http, python: envs/imajev/bin/python, url: "http://127.0.0.1:8770/v1/systemone", train: {recipe: imajev_lora, init_adapter: adapters/imajev-4b, vision_lora: false, train_size: full}}
+  imajev4b_ftA_s1: {enabled: false, arm: A, group: imajev4b_ftA, seed: 1, adapter: imajev_http, python: envs/imajev/bin/python, url: "http://127.0.0.1:8770/v1/systemone", train: {recipe: imajev_lora, init_adapter: adapters/imajev-4b, vision_lora: false, train_size: full}}
+  imajev4b_ftA_s2: {enabled: false, arm: A, group: imajev4b_ftA, seed: 2, adapter: imajev_http, python: envs/imajev/bin/python, url: "http://127.0.0.1:8770/v1/systemone", train: {recipe: imajev_lora, init_adapter: adapters/imajev-4b, vision_lora: false, train_size: full}}
+  imajev4b_ftB_s0: {enabled: false, arm: B, group: imajev4b_ftB, seed: 0, adapter: imajev_http, python: envs/imajev/bin/python, url: "http://127.0.0.1:8771/v1/systemone", train: {recipe: imajev_lora, init_adapter: adapters/imajev-4b, vision_lora: true, train_size: full}}
+  imajev4b_ftB_s1: {enabled: false, arm: B, group: imajev4b_ftB, seed: 1, adapter: imajev_http, python: envs/imajev/bin/python, url: "http://127.0.0.1:8771/v1/systemone", train: {recipe: imajev_lora, init_adapter: adapters/imajev-4b, vision_lora: true, train_size: full}}
+  imajev4b_ftB_s2: {enabled: false, arm: B, group: imajev4b_ftB, seed: 2, adapter: imajev_http, python: envs/imajev/bin/python, url: "http://127.0.0.1:8771/v1/systemone", train: {recipe: imajev_lora, init_adapter: adapters/imajev-4b, vision_lora: true, train_size: full}}
+  # data-efficiency runs (arm B, seed 0)
+  imajev4b_ftB_1k: {enabled: false, arm: B, seed: 0, adapter: imajev_http, python: envs/imajev/bin/python, url: "http://127.0.0.1:8771/v1/systemone", train: {recipe: imajev_lora, init_adapter: adapters/imajev-4b, vision_lora: true, train_size: 1000}}
+  imajev4b_ftB_5k: {enabled: false, arm: B, seed: 0, adapter: imajev_http, python: envs/imajev/bin/python, url: "http://127.0.0.1:8771/v1/systemone", train: {recipe: imajev_lora, init_adapter: adapters/imajev-4b, vision_lora: true, train_size: 5000}}
+
+  # ---- specialist baseline ----
+  specialist_s0: {enabled: false, arm: S, group: specialist, seed: 0, adapter: specialist, python: envs/specialist/bin/python, checkpoint: work/checkpoints/specialist_s0/best.pt, train: {recipe: specialist, arch: convnext_tiny, train_size: full, image_size: 512, epochs: 20, lr: 1.0e-4, batch_size: 32}}
+  specialist_s1: {enabled: false, arm: S, group: specialist, seed: 1, adapter: specialist, python: envs/specialist/bin/python, checkpoint: work/checkpoints/specialist_s1/best.pt, train: {recipe: specialist, arch: convnext_tiny, train_size: full, image_size: 512, epochs: 20, lr: 1.0e-4, batch_size: 32}}
+  specialist_s2: {enabled: false, arm: S, group: specialist, seed: 2, adapter: specialist, python: envs/specialist/bin/python, checkpoint: work/checkpoints/specialist_s2/best.pt, train: {recipe: specialist, arch: convnext_tiny, train_size: full, image_size: 512, epochs: 20, lr: 1.0e-4, batch_size: 32}}
+  specialist_1k: {enabled: false, arm: S, seed: 0, adapter: specialist, python: envs/specialist/bin/python, checkpoint: work/checkpoints/specialist_1k/best.pt, train: {recipe: specialist, arch: convnext_tiny, train_size: 1000, image_size: 512, epochs: 20, lr: 1.0e-4, batch_size: 32}}
+  specialist_5k: {enabled: false, arm: S, seed: 0, adapter: specialist, python: envs/specialist/bin/python, checkpoint: work/checkpoints/specialist_5k/best.pt, train: {recipe: specialist, arch: convnext_tiny, train_size: 5000, image_size: 512, epochs: 20, lr: 1.0e-4, batch_size: 32}}
+
+  # ---- generative baseline (arm G): NOT IMPLEMENTED in this version ----
+  # generative_ft: a LoRA fine-tune of the same backbone that writes the answer as text.
+  # The analysis accepts its predictions in the common format once a trainer and adapter exist.

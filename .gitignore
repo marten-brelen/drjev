@@ -1,0 +1,16 @@
+# Data, working files and results never go into the repository
+data/
+work/
+results/
+runs/
+
+# Model environments (the recorded package versions, envs/*.freeze.txt, are kept)
+envs/*/
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+build/
+dist/

@@ -1,0 +1,20 @@
+[project]
+name = "drjev"
+version = "0.2.0"
+description = "Pipeline for the study of image decision (Jev-style) models on diabetic retinopathy grading"
+requires-python = ">=3.10"
+dependencies = ["numpy", "pandas", "pillow", "pyyaml", "scipy", "scikit-learn", "matplotlib", "requests"]
+
+[project.optional-dependencies]
+train = ["torch", "torchvision"]
+test = ["pytest"]
+
+[project.scripts]
+drjev = "drjev.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["drjev*"]

@@ -1,0 +1,47 @@
+# Main study configuration. Everything under `analysis` and `splits` is frozen by `drjev lock`.
+study:
+  name: dr-imagejev
+  seed: 20261003
+
+paths:
+  raw: data/raw            # put the downloaded datasets here (see config/datasets.yaml)
+  work: work               # processed images, manifests, predictions (never committed)
+  results: results         # tables, figures, summary
+machine: config/machines/dgx-spark.yaml   # how work is scheduled on this computer; remove the line for a generic machine
+datasets_file: config/datasets.yaml
+questions_file: config/questions.yaml
+models_file: config/models.yaml
+
+preprocess:
+  size: 630                # 630 x 630 = 396,900 pixels, inside imajev's 400,000-pixel cap
+  jpeg_quality: 95
+
+splits:
+  eyepacs_dev_fraction: 0.10         # of Kaggle-train patients; the rest is train
+  eyepacs_calibration_images: 10000  # from Kaggle-test
+  eyepacs_internal_test_images: 10000
+  efficiency_subsets: [1000, 5000]   # nested, stratified by grade; "full" is always available
+  paraphrase_subset: 2000            # per test dataset, for variants 1 and 2
+  local_recalibration: 200           # per external dataset (secondary analysis)
+  q3_fractions: {train: 0.8, dev: 0.1, calibration: 0.1}
+
+analysis:
+  bootstrap: 2000
+  ece_bins: 15
+  target_sensitivity: 0.90           # operating thresholds are fixed on the calibration split
+  selective_accuracy: 0.95           # "share of images automated at this accuracy"
+  primary_referral_answer: direct    # direct (Q4/Q5) or derived (from Q2 and Q3)
+  primary_datasets: [messidor2, ddr]
+  pooled_external: [messidor2, ddr, aptos, idrid, mbrset]
+  alpha: 0.05
+  # Pre-specified comparisons. `model` and `reference` are run names or group names from models.yaml.
+  # Margins are placeholders until confirmed with a clinician.
+  comparisons:
+    - {id: H2_qwk,        test: noninferiority, metric: qwk,             model: imajev4b_ftB, reference: specialist,    margin: 0.05, datasets: [messidor2, ddr],   primary: true}
+    - {id: H2_ref_sens,   test: noninferiority, metric: ref_sens_matched, model: imajev4b_ftB, reference: specialist,   margin: 0.05, datasets: [messidor2, ddr],   primary: true}
+    - {id: H2_st_sens,    test: noninferiority, metric: st_sens_matched,  model: imajev4b_ftB, reference: specialist,   margin: 0.05, datasets: [pooled_external],  primary: false}
+    - {id: H3_ece,        test: superiority,    metric: ece_grade,       model: imajev4b_ftB, reference: generative_ft, lower_is_better: true, datasets: [messidor2, ddr], primary: true}
+    - {id: H3_aurc,       test: superiority,    metric: aurc_grade,      model: imajev4b_ftB, reference: generative_ft, lower_is_better: true, datasets: [messidor2, ddr], primary: true}
+    - {id: H4_ece,        test: noninferiority, metric: ece_grade,       model: imajev4b_ftB, reference: specialist,    lower_is_better: true, margin: 0.02, datasets: [messidor2, ddr], primary: false}
+    - {id: H4_aurc,       test: noninferiority, metric: aurc_grade,      model: imajev4b_ftB, reference: specialist,    lower_is_better: true, margin: 0.02, datasets: [messidor2, ddr], primary: false}
+    - {id: H5_vision_lora, test: superiority,   metric: qwk,             model: imajev4b_ftB, reference: imajev4b_ftA,  datasets: [messidor2, ddr], primary: false}

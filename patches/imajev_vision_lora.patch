@@ -1,0 +1,21 @@
+Arm B (LoRA on the vision tower as well as the language layers).
+
+imajev's trainer applies LoRA only to modules whose name contains "language_model"
+(scripts/torch_decision.py, add_lora). This patch lets an environment variable widen that pattern.
+UNTESTED: written against commit ccf586d4. Before a full run, check with a few steps that
+(1) `model.print_trainable_parameters()` reports more parameters than arm A, and
+(2) the server loads the saved adapter (PEFT stores the pattern in adapter_config.json).
+The module-name pattern for the vision encoder ("visual" or "vision_tower") depends on the
+transformers version; list names with `[n for n, _ in model.named_modules() if "proj" in n][:50]`.
+
+--- a/scripts/torch_decision.py
++++ b/scripts/torch_decision.py
+@@
+  def add_lora(self,rank=16,alpha=32,targets=None):
+   from peft import LoraConfig,get_peft_model
+-  self.model=get_peft_model(self.model,LoraConfig(r=rank,lora_alpha=alpha,lora_dropout=0.0,target_modules=r'.*language_model.*\.('+'|'.join(targets or TARGETS)+')'))
++  import os
++  scope=os.environ.get('DRJEV_LORA_TARGET_REGEX',r'.*language_model.*')
++  names=(targets or TARGETS)+(['qkv','proj','fc1','fc2'] if 'DRJEV_LORA_TARGET_REGEX' in os.environ else [])
++  self.model=get_peft_model(self.model,LoraConfig(r=rank,lora_alpha=alpha,lora_dropout=0.0,target_modules=scope+r'\.('+'|'.join(names)+')'))
+   return self.model
