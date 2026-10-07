@@ -17,8 +17,10 @@ The pipeline implements the study protocol (`docs/dr-imagejev-study-protocol.md`
 | Machine check, benchmark, memory protection, running a model in a separate environment | Tested with stand-in models on an ordinary (x86) Linux machine |
 | Anything on the DGX Spark itself: `scripts/setup_env.sh`, the Arm / CUDA 13 installs, real timings | **Not tested**: no Spark was available while writing this |
 | Generative baseline (arm G) | **Not implemented** |
+| Hosted OpenAI Decisions API (arm O, protocol v0.5) | **Not implemented**: in the protocol only; no adapter and no per-dataset "may be sent" setting yet |
 
 Nothing in this repository has touched a real fundus photograph, real model weights or a DGX Spark.
+No image is sent to any hosted service by this code.
 
 ## The DGX Spark (128 GB)
 

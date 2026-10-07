@@ -1,10 +1,11 @@
 # Study protocol: image decision models ("Jev-style") for diabetic retinopathy grading
 
-**Version:** 0.4 (draft for implementation planning)
+**Version:** 0.5 (draft for implementation planning)
+**Changes in 0.5:** OpenAI's Decisions API (public beta, 6 Oct 2026) added as a hosted, zero-shot reference, arm O (sections 2, 4.3, 6.4, 6.8) with a secondary hypothesis H8; the blanket rule against sending images to a hosted service replaced by a per-dataset permission table and a gate (5.4, 10, 12). Arm O is proposed, not agreed: see section 15.
 **Changes in 0.4:** hardware fixed as one NVIDIA DGX Spark, 128 GB (section 13.1); a benchmark gate added before the lock; JEV-27B-VL back in the zero-shot arm.
 **Changes in 0.3:** split sizes set from a power check (5.3, 8.1); calibration moved to the EyePACS Kaggle-test half; model interfaces read from their documentation (4.1); NeoHorse fine-tuning dropped; implementation status of each arm stated (6.4); pipeline described (14).
 **Changes in 0.2:** five clinical questions replace the original three (section 6.2); maculopathy added; sight-threatening definition confirmed; coherence, action-rule and patient-level analyses added.
-**Date:** 3 October 2026
+**Date:** 7 October 2026
 **Status:** Not yet frozen. Items marked **[CONFIRM]** need a decision; items marked **[VERIFY]** are from memory or inference and must be checked before the protocol is locked.
 
 ---
@@ -14,6 +15,8 @@
 We test whether small, non-generative image decision models (Jev-style models such as imajev-4b) can grade diabetic retinopathy (DR) from colour fundus photographs. These models take an image and a typed question with a fixed set of options and return a probability for each option in a single forward pass, with no text generation.
 
 We evaluate them as released (zero-shot) and after LoRA fine-tuning, on public DR datasets, with external validation on datasets from different countries and cameras. The comparison is against (a) a specialist image classifier and (b) a generative vision-language model on the same backbone.
+
+A hosted decision service (OpenAI's Decisions API, released on 6 October 2026) is added as a zero-shot reference point, on those datasets whose terms allow their images to be sent to it (section 5.4). It cannot be fine-tuned or run locally, so it is a comparator, not a study model.
 
 The headline claim we are testing:
 
@@ -29,6 +32,7 @@ A negative result (the models do not transfer, or do not beat a simple calibrate
 
 - Jev (TypeSafe AI) was released in August 2026. Open image-capable variants followed within weeks: Visual Jev (22 Sep), PixelJev (25 Sep), imajev (late Sep), Jev-Omni and others.
 - These models are being adopted quickly across domains. Someone will point one at medical images; evidence on whether that works is needed either way.
+- On 6 October 2026 OpenAI released its Decisions API in public beta: a hosted endpoint that takes text and images with typed questions and returns probabilities, running on GPT-6 Luna. A major provider now offers the same kind of model as a service, which sharpens the question this study asks: is a small local decision model enough, or does the task need a hosted frontier model?
 
 ### 2.2 Prior art and the gap
 
@@ -37,8 +41,9 @@ A negative result (the models do not transfer, or do not beat a simple calibrate
 | OmniMed-Jev (HKU, arXiv 2610.00381, 30 Sep 2026) | MedGemma-1.5-4B + decision head + LoRA across 15 medical datasets. Fundus appears as RetinaMNIST, a 5-point ordered score. Calibration error fell sharply versus a generative fine-tune of the same backbone. | 726 held-out cases; fundus pooled with cardiac ultrasound (n=200); held-out data from same sources as training; no out-of-distribution or per-source analysis; no comparison with general Jev-style models or DR specialists; the ordinal/regression family benefited least; its explicit "none" option probe failed. Code repo currently contains only a licence and README. |
 | "Can Jev Judge Radiology Reports?" (arXiv 2609.27607) | Jev judging report text against references. | Text only, no images. |
 | Visual Jev, PixelJev, imajev, Jev-Omni | General image decision models. | No medical evaluation. PixelJev states it is not validated for medical use. |
+| OpenAI Decisions API (public beta, 6 Oct 2026) | Hosted decision endpoint with image input. | No medical evaluation found. Closed weights; no local deployment; no fine-tuning documented. |
 
-We found no DR-specific study of Jev-style models and no medical Jev-style model on Hugging Face (search on 3 Oct 2026; not exhaustive).
+We found no DR-specific study of Jev-style models and no medical Jev-style model on Hugging Face (search on 3 Oct 2026; not exhaustive). We found no medical-image evaluation of the Decisions API (search on 7 Oct 2026, one day after its release; not exhaustive).
 
 ### 2.3 Motivation (what reviewers will ask)
 
@@ -56,6 +61,13 @@ Speed, cost and local deployment alone are a weak case, because a small speciali
 - One generalist model to maintain rather than one network per task.
 - Possible data efficiency when adapting to a new camera or population (a hypothesis we test).
 
+**Versus a hosted decision service (OpenAI Decisions API)**
+- Images stay on the clinic's own machine: no transfer of patient images to a vendor, no data-processing agreement, and it works without a network connection.
+- Fixed weights: the same model gives the same answer next year. A hosted model is named by an alias, is in beta, and can change without notice.
+- A local model can be fine-tuned to the local cameras and population; no fine-tuning is documented for the hosted service.
+- Price is not the argument. The hosted service is cheap ($0.10 per million input tokens at release), so the case rests on governance, reproducibility and adaptability.
+- If the hosted service, zero-shot, matches or beats the fine-tuned local model, that is a finding the paper reports as such.
+
 **Scientific and safety case**
 - Tests whether consumer-photo training transfers to fine lesion detail.
 - Calibration for ordinal medical grading under dataset shift is an open question.
@@ -70,6 +82,8 @@ Speed, cost and local deployment alone are a weak case, because a small speciali
 2. Measure performance after LoRA fine-tuning and test non-inferiority to a specialist classifier on external datasets.
 3. Compare calibration and selective prediction against a generative VLM baseline and a temperature-scaled specialist, under external dataset shift.
 
+Secondary objective: place a hosted frontier decision service on the same scale, zero-shot, as a reference point for the local models.
+
 ### 3.2 Hypotheses
 
 | ID | Hypothesis | Type |
@@ -81,6 +95,7 @@ Speed, cost and local deployment alone are a weak case, because a small speciali
 | H5 | Adding vision-tower LoRA improves over language-only LoRA. | Superiority |
 | H6 | p(unknown) separates ungradable from gradable images. | Descriptive (AUROC) |
 | H7 | Exploratory: data efficiency, and answering new question types without retraining. | Exploratory |
+| H8 | Hosted reference. (a) Zero-shot, the hosted Decisions API is also below specialist level on DR grading. (b) Fine-tuned imajev-4b (arm B) is non-inferior to the zero-shot hosted service on 5-class QWK and on referable-DR sensitivity at matched specificity. | Secondary: (a) descriptive, (b) non-inferiority; outside the primary family |
 
 ---
 
@@ -106,7 +121,7 @@ Why these:
 - AutoJev-27B is the scale check.
 - Glance and Visual-Jev share a base, so the pair shows what the decision adapter adds.
 
-Not included: jev-spatial (spatial pointing), decider-2b-vision, JPT (CC-BY-NC, redundant Qwen variant), OmniJev 4B, Reflex 4B (repo identity unclear), Wity-1 (weights availability unconfirmed; do not send dataset images to a hosted API).
+Not included: jev-spatial (spatial pointing), decider-2b-vision, JPT (CC-BY-NC, redundant Qwen variant), OmniJev 4B, Reflex 4B (repo identity unclear), Wity-1 (weights availability unconfirmed; if it is hosted only, it is not covered by the permission gate in section 5.4, which names one hosted service).
 
 Known interface facts for imajev-4b:
 - Rank-16 LoRA on language layers; vision encoder frozen.
@@ -137,6 +152,32 @@ Consequence: only imajev can abstain natively. Every other model receives "unkno
 | Generative VLM, LoRA fine-tuned on the same data and schedule | Interface-controlled comparison (same design as OmniMed-Jev) |
 | Specialist: RETFound and ConvNeXt (or ResNet-50), fine-tuned on the same data, with temperature scaling | The bar for H2 and H4 |
 | Optional: MedGemma-1.5-4B zero-shot | Medical-backbone reference. **Contaminated on EyePACS** (it is in MedGemma's training mix); report external sets only |
+
+### 4.3 Hosted decision service (reference only)
+
+| Model | Access | Base | Licence | Zero-shot | Fine-tune |
+|---|---|---|---|---|---|
+| OpenAI Decisions API | `POST /v1/decisions`, hosted | `gpt-6-luna` (the only model the endpoint accepts) | Proprietary, pay per use | Yes | No (none documented) |
+
+What is known on 7 Oct 2026. These facts come from OpenAI's developer-forum announcement and press coverage of the launch; the official guide has not been read, so every row is **[VERIFY]**.
+
+| Item | Reported |
+|---|---|
+| Status | Public beta since 6 Oct 2026; general availability expected "in the coming weeks" |
+| Question types | `predicate` (probability that a statement is true), `choice` (chosen value, a probability for every option, a confidence), `score` (probability-weighted average of ordered level indices) |
+| Score output | Whether the full distribution over levels is returned is not confirmed |
+| Images | Inline base64 data only (no image URLs or file IDs); up to 128 image parts per request; resolution limits and any downscaling not found |
+| Abstain | None documented. The service can return a refusal in place of an answer |
+| Versioning | No dated snapshot documented; the model is addressed by the alias `gpt-6-luna` |
+| Price | $0.10 per million input tokens; no output or cache charges. How an image is counted in tokens not found |
+| Data controls | Zero Data Retention and HIPAA eligibility for eligible customers; data residency in the US and Europe |
+| Speed | "Up to 10x faster" than the same model through the Responses API (vendor claim, conditions not stated) |
+
+Consequences:
+- It has no built-in abstain, so it is treated like every model except imajev: "unknown" is an explicit extra option on Q2-Q5.
+- Q2 is sent as `choice` (five grades plus "unknown"), not `score`, because only `choice` is known to return a probability for every option.
+- It cannot be fine-tuned, so it appears only as a zero-shot arm.
+- It cannot be pinned to a revision, so its results carry a date, and a repeat run measures how stable it is (section 6.8).
 
 ---
 
@@ -214,6 +255,25 @@ Consequences to state as limitations:
 - Write a split manifest (image ID, dataset, patient ID, split, label) and freeze it before any test-set inference.
 
 Limitation to state: we cannot exclude that base model pretraining saw public fundus images.
+
+### 5.4 Which datasets may be sent to the hosted service
+
+Arm O sends images to a third party. Each dataset's terms decide whether that is allowed. The default for every dataset is **not sent**; a dataset is sent only after the permission and its basis are written into this table.
+
+| Dataset | Terms as recorded in 5.1 | Proposed position | Decision |
+|---|---|---|---|
+| EyePACS (Kaggle) | Competition rules; no redistribution | Check the rules; ask Kaggle or EyePACS if unclear | **[CONFIRM]** |
+| Messidor-2 | Research/education use; no redistribution | Ask the distributor (ADCIS) | **[CONFIRM]** |
+| DDR | Licence unclear | Ask the authors | **[CONFIRM]** |
+| APTOS 2019 | Non-commercial; no redistribution | Check the competition rules | **[CONFIRM]** |
+| IDRiD | Open, believed CC BY 4.0 **[VERIFY]** | Likely permitted | **[CONFIRM]** |
+| mBRSET, BRSET | PhysioNet credentialed data use agreement | Not sent. The agreement forbids sharing the data with third parties, and PhysioNet has published guidance restricting the use of credentialed data with online AI services **[VERIFY current wording]** | Not sent |
+
+- Whether processing by a vendor under zero retention counts as "redistribution" is for each data owner to say. We do not assume it.
+- The account used must have Zero Data Retention, or at least written confirmation that API inputs are not used for training **[VERIFY for the account]**.
+- Only images in the calibration split and the locked test sets are ever sent. Training, dev and reserve images are never sent.
+- What is sent: the preprocessed image (section 6.1) with all metadata removed, and the question. Never a label, a patient identifier or a file name.
+- Consequence: arm O may cover only some test sets. Every comparison with it is made on the test sets it covers, on the same images. If Messidor-2 and DDR are not cleared, H8 is reported on whatever is, and that limit is stated.
 
 ---
 
@@ -309,6 +369,7 @@ Clinic decisions are per patient. Two approaches on datasets with eye pairing (E
 | Arm | Description |
 |---|---|
 | Z | Zero-shot: all six Jev-style models plus controls, all test sets |
+| O | Hosted reference: OpenAI Decisions API, zero-shot, on the test sets cleared in section 5.4 only. Proposed; adapter not yet written |
 | A | imajev-4b, language-only LoRA (the imajev recipe), continuing from the shipped adapter |
 | B | imajev-4b, language LoRA + vision-tower LoRA. imajev's trainer applies LoRA to language layers only, so this arm needs a small patch (`patches/imajev_vision_lora.patch`, untested) |
 | C (optional) | Base Qwen3.5-4B + same LoRA and readout, no imajev adapter. Isolates the value of Jev pretraining |
@@ -353,6 +414,17 @@ Collapsed scales (any DR, 3-level) are a weak test, because a CNN's 5-class prob
 - A question the model was never trained on, asked after DR fine-tuning (for example laser scars present, where labels exist **[VERIFY]**).
 - Optional: grading with patient metadata supplied as a record (mBRSET has clinical metadata).
 
+### 6.8 Hosted decision service (arm O)
+
+- **Same questions.** The five questions, their options and the three wordings are identical to those sent to every other model. One question per request, so that one answer cannot influence another; five requests per image.
+- **Same image.** The preprocessed image used by every other arm, sent as inline base64, metadata removed.
+- **Refusals and errors.** A refusal, or an error that persists after three retries, is recorded as an abstention ("unknown"), never dropped. The refusal rate is reported per question and per dataset. Under the action rule (section 6.3) an abstention is a referral.
+- **Calibration.** Same procedure as every other model (section 6.6): one temperature per question and the 90%-sensitivity thresholds, fitted on the EyePACS calibration split. This needs EyePACS to be cleared in section 5.4. If it is not, arm O is reported uncalibrated: threshold-free metrics (QWK, AUROC, raw ECE, AURC) and sensitivity at the reference model's specificity only. Q3 is calibrated on BRSET, which is not sent, so Q3 from arm O is always reported uncalibrated.
+- **After the lock, once.** Test-set images are sent only after the protocol lock, like every other test-set read, and the run is made once. Before the lock the service sees synthetic images (adapter check) and, if cleared, calibration images.
+- **Dating and stability.** There is no revision to pin. Each response is stored in full with its date and time, the model name it reports and its request identifier. Each dataset is run in one session. A fixed 500-image subset of the internal test set (or of the largest cleared test set) is sent again one week later, and again if the service leaves beta during the study, to report test-retest agreement: the share of identical answers and the mean absolute change in probability. These repeats are the only planned re-runs.
+- **Speed and cost.** Latency is measured end to end, network included, and reported in its own row: it is not like-for-like with a model running on the local machine. Cost per 1,000 decisions is taken from the billed tokens.
+- **Volume.** If every dataset were cleared: about 35,200 images × 5 questions, plus the paraphrase subsets, about 300,000 requests. If an image costs between 500 and 3,000 input tokens (not confirmed), that is roughly $15 to $90. The benchmark on 200 calibration images fixes the real figure before the run.
+
 ---
 
 ## 7. Outcomes
@@ -386,6 +458,7 @@ Primary datasets for H2–H4: Messidor-2 and DDR test. Other external sets are r
 - Macro-F1, per-grade recall (especially grades 1, 3 and 4), confusion matrices.
 - Prompt-sensitivity range.
 - Latency (p50, p95), peak GPU memory, model size, cost per 1,000 decisions, all on stated hardware.
+- Hosted service (arm O): refusal rate; test-retest agreement; end-to-end latency and billed cost, reported separately from the local models.
 - Subgroup results by dataset, camera type and image quality where metadata allows.
 
 ---
@@ -405,6 +478,7 @@ Primary datasets for H2–H4: Messidor-2 and DDR test. Other external sets are r
 - Tests are one-sided at 2.5%, matching the lower limit of the two-sided 95% interval. Primary tests are decided on the Holm-adjusted p-value over the whole pre-specified primary family; a primary test that cannot be run counts as failed.
 - Models are compared only on test sets where both predicted every image. At least 2,000 bootstrap samples are needed for the Holm-adjusted tests to be able to pass.
 - The locked external evaluation is run once. Any re-run is documented with the reason.
+- **Hosted reference (H8).** Paired bootstrap on the same images, same margins as H2, reported with 95% intervals. H8 is secondary and sits outside the Holm family, so adding or dropping arm O does not change any primary test. Refusals count as abstentions.
 
 ### 8.1 Precision and power of the test sets
 
@@ -430,7 +504,7 @@ Estimated before any model was run, from grade counts in published tables (EyePA
 
 | Output | Content |
 |---|---|
-| Table 1 | Zero-shot: QWK and rDR AUROC, every model × dataset |
+| Table 1 | Zero-shot: QWK and rDR AUROC, every model × dataset; the hosted service on the datasets it covers |
 | Table 2 | Fine-tuned arms vs specialist vs generative baseline, internal and external |
 | Figure 1 | Reliability diagrams and ECE: EyePACS vs each external set |
 | Figure 2 | Risk–coverage curves |
@@ -439,8 +513,8 @@ Estimated before any model was run, from grade counts in published tables (EyePA
 | Table 3c | Coherence rate; direct versus derived answers; patient-level referral |
 | Figure 3 | Data-efficiency curves (decision model vs specialist) |
 | Table 4 | Ablations: vision LoRA, adapter vs base readout, model size, prompt paraphrase |
-| Table 5 | Deployment: latency, memory, size, cost |
-| Supplement | Confusion matrices, subgroup results, flexibility experiments, local recalibration |
+| Table 5 | Deployment: latency, memory, size, cost; a separate row for the hosted service (where it runs, what leaves the site, whether it can be pinned or fine-tuned) |
+| Supplement | Confusion matrices, subgroup results, flexibility experiments, local recalibration; hosted-service refusal rates and test-retest agreement |
 
 ---
 
@@ -449,6 +523,7 @@ Estimated before any model was run, from grade counts in published tables (EyePA
 | Gate | Condition | Action |
 |---|---|---|
 | G0 (before the lock) | `drjev benchmark` and `drjev benchmark --train` results in | Fix the number of seeds, arms and data-efficiency runs so that the projected hours fit the machine; record the choice here |
+| G-API (before any dataset image is sent to the hosted service) | The official guide has been read and section 4.3 corrected; each dataset to be sent is cleared in section 5.4; the account's data controls are confirmed; the adapter answers correctly on synthetic images | Enable arm O for the cleared datasets only. If the gate is not passed, arm O is dropped and reported as not run |
 | G1 (end of week 1) | Zero-shot results in | Confirms H1; confirm which adapters run and which models stay in the zero-shot table |
 | G2 (mid week 2) | Arm B dev QWK within reach of specialist dev QWK | Proceed to locked evaluation. If far below, try higher resolution or tiling, then reassess |
 | G3 (after locked evaluation) | H2 met and H3 or H4 met | Positive paper |
@@ -468,6 +543,10 @@ Estimated before any model was run, from grade counts in published tables (EyePA
 | Model and benchmark churn | Pin revisions; record dates |
 | Dataset licences | Release code and split manifests only, not images; check whether fine-tuned weights may be released **[VERIFY]** |
 | Not clinically validated | State clearly: retrospective, public data, no diagnostic claim |
+| Sending images to the hosted service breaches a dataset's terms | Default is "not sent"; per-dataset clearance in section 5.4; gate G-API |
+| The hosted model changes during the study, or the beta interface changes | Store every response with its date; one session per dataset; test-retest subset; state the dates in the paper |
+| The hosted service refuses medical images | Refusals counted as abstentions and reported; never dropped |
+| Arm O delays the paper | It is secondary and outside the primary family; drop it without touching the primary analysis |
 
 ---
 
@@ -475,7 +554,7 @@ Estimated before any model was run, from grade counts in published tables (EyePA
 
 - Public, de-identified datasets only; no new patient data.
 - PhysioNet data use agreement for mBRSET and BRSET; named credentialed user **[CONFIRM who]**.
-- No dataset images sent to third-party hosted APIs.
+- Dataset images go to one hosted service only (arm O, OpenAI Decisions API), only for datasets cleared in section 5.4, and only after gate G-API. No labels, patient identifiers or file names are sent. No image goes to any other hosted service.
 - Reporting to follow TRIPOD+AI and CLAIM checklists.
 - The paper states that no component is intended or validated for diagnostic use.
 
@@ -488,12 +567,12 @@ Estimated before any model was run, from grade counts in published tables (EyePA
 | Days 1–2 | Dataset access requests; download; preprocessing; split manifest; environment; pin model revisions; freeze questions and margins |
 | Days 3–5 | Zero-shot sweep (arm Z) on dev and internal data; start specialist training (arm S) |
 | Week 2 | Fine-tuning arms A and B (C and G if built); ablations; data-efficiency runs; fit calibration |
-| Start of week 3 | Protocol lock; locked evaluation on all test sets, run once |
+| Start of week 3 | Protocol lock; locked evaluation on all test sets, run once; arm O on the cleared test sets in the same week, repeat subset one week later |
 | Rest of week 3 | Analysis, figures, write-up, preprint |
 
 ### 13.1 Hardware and compute
 
-- All inference and training run on one NVIDIA DGX Spark, 128 GB (Arm processor, CUDA 13, memory shared between CPU and GPU). Nothing leaves the machine.
+- All inference and training run on one NVIDIA DGX Spark, 128 GB (Arm processor, CUDA 13, memory shared between CPU and GPU). Nothing leaves the machine, with one exception: the images sent to the hosted service in arm O under section 5.4.
 - One model is held in memory at a time; each model runs in its own software environment, whose package versions are recorded with the results.
 - JEV-27B-VL (52 GB of weights) fits in memory and is back in the zero-shot arm, subject to its server installing on this machine.
 - Published speeds for these models come from data-centre GPUs. The timeline above is therefore provisional until gate G0: the benchmark measures seconds per image and per training step on this machine and projects the total.
@@ -516,6 +595,8 @@ The study is run by the `drjev` program in this repository (see `README.md`). Da
 | All of the above in order | `drjev run` |
 
 Status on 3 Oct 2026: data stages, analysis and reporting are tested on synthetic data; the imajev adapter and training export are tested against imajev's own code without weights; nothing has been run on real images, real weights or a GPU.
+
+Status on 7 Oct 2026: the hosted-service arm (O) exists in this protocol only. The pipeline has no adapter for it and no per-dataset "may be sent" setting yet; both are to be written once arm O is agreed and the official guide has been read.
 
 ---
 
@@ -545,6 +626,12 @@ Status on 3 Oct 2026: data stages, analysis and reporting are tested on syntheti
 - [ ] **[CONFIRM]** The order of cuts in section 13.1 if the benchmark shows the full plan does not fit one machine
 - [ ] **[VERIFY]** That imajev, its trainer and each other model install and run on the DGX Spark (Arm, CUDA 13)
 - [ ] **[VERIFY]** Whether fine-tuned weights can be released under dataset terms
+- [ ] **[CONFIRM]** Include the hosted service (arm O) at all. It reverses the earlier rule that no dataset image is sent to a hosted service
+- [ ] **[CONFIRM]** Per-dataset clearance to send images to the hosted service (section 5.4); who asks each data owner
+- [ ] **[VERIFY]** Every Decisions API fact in section 4.3 against OpenAI's official guide, especially: the response fields for `choice` and `score`, image resolution limits, versioning, fine-tuning
+- [ ] **[VERIFY]** Zero Data Retention (or no-training confirmation) on the account that will be used
+- [ ] **[CONFIRM]** H8 as secondary and outside the primary family; same margins as H2
+- [ ] **[CONFIRM]** Whether to add the open OneJev models (OpenDecisions project: 0.8B to 27B, Apache-2.0, image input, run locally, same request style as the Decisions API) to the zero-shot arm. Found on 7 Oct 2026; repository read only in summary **[VERIFY]**
 - [ ] Re-run the prior-art search the day before submission
 
 ---
@@ -562,6 +649,10 @@ Models and benchmarks
 - Glance: https://hf.co/untappedvc/glance-qwen3-vl-4b
 - Image JevBench: https://benchmarkheaven.com/image-jev-bench
 - decision-vision-bench: https://github.com/gasvn/decision-vision-bench
+- OpenAI Decisions API, official guide (not yet read): https://developers.openai.com/api/docs/guides/decisions
+- OpenAI Decisions API, public beta announcement (6 Oct 2026): https://community.openai.com/t/decisions-api-is-now-available-in-public-beta/1403877
+- Decisions API launch coverage (endpoint, limits, price): https://mixed-news.com/en/openai-decisions-api-beta-gpt-6-luna-endpoint-table/ and https://www.unite.ai/openai-releases-decisions-api-in-public-beta-powered-by-gpt-6-luna/
+- OpenDecisions / OneJev (open models, not yet assessed): https://github.com/OpenDecisions/OpenDecisions
 
 Prior art
 - OmniMed-Jev: https://arxiv.org/abs/2610.00381 (repo: https://github.com/lytang63/OmniMed-Jev)

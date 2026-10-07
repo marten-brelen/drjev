@@ -6,7 +6,7 @@ This repository holds a research study and the program that runs it. Read this f
 
 A study of whether image decision models ("Jev-style" models such as imajev-4b: image + typed question + fixed options in, probabilities out, no generated text) can grade diabetic retinopathy from fundus photographs as well as a specialist classifier, with usable calibration and abstention.
 
-- The protocol (`docs/dr-imagejev-study-protocol.md`, v0.4) defines the study: questions, datasets, splits, arms, statistics.
+- The protocol (`docs/dr-imagejev-study-protocol.md`, v0.5) defines the study: questions, datasets, splits, arms, statistics.
 - The `drjev` Python package is the pipeline: datasets and models go in; tables, figures, a summary and per-image predictions come out.
 - The owner is a clinician, not a software engineer. Explain what you did and found in plain language, and say clearly what was and was not checked.
 
@@ -43,7 +43,7 @@ Stop and report after each numbered step. Do not run ahead to the next one if a 
 8. **Lock.** Only the owner decides to lock (see the rules below).
 9. **Training, test-set predictions, analysis, report.** As in "Real run" in `README.md`.
 
-Not built, and not to be built without the owner asking: the generative baseline (arm G), a RETFound baseline, a container image.
+Not built, and not to be built without the owner asking: the generative baseline (arm G), a RETFound baseline, a container image, and the adapter for the hosted OpenAI Decisions API (arm O, protocol sections 4.3, 5.4 and 6.8). Arm O is proposed in the protocol but not yet agreed.
 
 ## Rules that protect the study
 
@@ -56,7 +56,7 @@ These are requirements of the protocol, not preferences. Breaking them invalidat
 - **Ground-truth rules live in one place**, `drjev/targets.py`. Do not re-derive labels elsewhere.
 - **Do not change a statistical method, a metric definition, a margin or a pre-specified comparison** to make a result look better or a test pass. Bugs in them are fixed with a regression test and reported to the owner.
 - **No fabricated or placeholder numbers.** If something did not run, say so. Output from synthetic data must keep its SYNTHETIC stamp.
-- **Data stays on the machine.** Do not upload images, labels or per-image predictions anywhere. Never commit `data/`, `work/`, `results/`, model weights or credentials (`.gitignore` covers the folders). mBRSET and BRSET are under a PhysioNet credentialed licence.
+- **Data stays on the machine.** Do not upload images, labels or per-image predictions anywhere. The single exception is arm O: a dataset's images may be sent to the OpenAI Decisions API only if section 5.4 of the protocol records the owner's clearance for that dataset and gate G-API (section 10) has been passed. Until then only synthetic images may be sent to it. Never send a label, a patient identifier or a file name, and never send images to any other hosted service. Never commit `data/`, `work/`, `results/`, model weights or credentials (`.gitignore` covers the folders). mBRSET and BRSET are under a PhysioNet credentialed licence.
 - **One model in memory at a time.** The pipeline starts and stops each model itself; do not start model servers by hand alongside it.
 
 ## Decisions that belong to the owner
@@ -69,6 +69,7 @@ Section 15 of the protocol lists the open items. Items marked **[CONFIRM]** are 
 - Direct or derived answer as primary for referral and sight-threatening
 - Non-inferiority margins (currently placeholders: QWK 0.05, sensitivity 5 points)
 - Whether to build the generative baseline and RETFound, or drop hypothesis H3
+- Whether to include the hosted OpenAI Decisions API (arm O) at all, and which datasets may be sent to it (protocol section 5.4)
 - Split sizes, and the pooled sight-threatening test
 - The order of cuts if the full plan does not fit one machine (protocol section 13.1)
 
