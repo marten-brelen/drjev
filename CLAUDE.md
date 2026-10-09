@@ -12,7 +12,7 @@ A study of whether image decision models ("Jev-style" models such as imajev-4b: 
 
 ## Current state: the pipeline is already written. Do not rewrite it.
 
-Version 0.2.0 is complete and passes its 40 tests. Your job is to make it work on real data, real models and the real machine, not to start again.
+Version 0.2.0 is complete and passes its 41 tests. Your job is to make it work on real data, real models and the real machine, not to start again.
 
 Everything so far was built and tested on an ordinary x86 Linux sandbox with **synthetic images and mock models**. Nothing has touched a real fundus photograph, real model weights, a GPU or a DGX Spark. The table "What has and has not been tested" in `README.md` is the authoritative list.
 
@@ -23,11 +23,11 @@ The target machine is one **NVIDIA DGX Spark, 128 GB** (Arm aarch64, CUDA 13, CP
 ```bash
 bash scripts/setup_env.sh pipeline && source envs/pipeline/bin/activate
 pip install -e ".[test,train]"
-pytest                      # 40 tests, about 2 minutes; all must pass
+pytest                      # 41 tests, about 3 minutes; all must pass
 drjev demo /tmp/drjev-demo && drjev run --config /tmp/drjev-demo/config/study.yaml --lock   # full run on synthetic data
 ```
 
-If the tests or the demo fail on the Spark, fix that first and report what differed from x86.
+If the tests or the demo fail on the Spark, fix that first and report what differed from x86. Then compare the demo's `results/summary.md` with `examples/demo-results/summary.md`: apart from the date line they should match. Report any difference to the owner before going further.
 
 ## Work to do, in this order
 

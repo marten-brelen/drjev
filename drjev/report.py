@@ -26,6 +26,13 @@ STAMP = "SYNTHETIC DEMO DATA: mock models on drawn images. Not study results."
 ARM_NAMES = {"Z": "zero-shot", "A": "language LoRA", "B": "language + vision LoRA", "C": "base + LoRA", "G": "generative", "S": "specialist"}
 
 
+def _p(v) -> str:
+    """A p-value for the summary text."""
+    if v is None or (isinstance(v, float) and np.isnan(v)):
+        return " not available"
+    return " < 0.001" if v < 0.001 else f" = {v:.3f}"
+
+
 def _fmt(v, lo=None, hi=None, d=3) -> str:
     if v is None or (isinstance(v, float) and np.isnan(v)):
         return "–"
@@ -459,12 +466,16 @@ class Reporter:
         prim = [d for d in self.cfg.analysis["primary_datasets"] if d in self.datasets]
         if comps is not None and len(comps):
             ok = comps[comps["status"] == "ok"]
-            L += ["## Pre-specified tests", ""]
+            L += ["## Pre-specified tests", "",
+                  "Each test is one-sided at 2.5%. Primary tests are decided on the Holm-adjusted p-value, which corrects for running "
+                  "several primary tests at once; the 95% intervals shown are unadjusted, so a primary test can fail even when its "
+                  "interval alone would clear the margin. Secondary tests are decided on the unadjusted p-value.", ""]
             for r in ok.itertuples():
                 word = {("noninferiority", True): "non-inferior to", ("noninferiority", False): "not shown non-inferior to",
                         ("superiority", True): "better than", ("superiority", False): "not shown better than"}[(r.test, bool(r.passed))]
                 L.append(f"- **{r.id}** ({r.dataset}, {r.metric}): {r.model} was {word} {r.reference}; {r.model_value:.3f} versus {r.reference_value:.3f}, "
-                         f"advantage {r.advantage:+.3f} (95% CI {r.ci_low:+.3f} to {r.ci_high:+.3f})" + (f", margin {r.margin:.2f}" if r.test == "noninferiority" else "") + ".")
+                         f"advantage {r.advantage:+.3f} (95% CI {r.ci_low:+.3f} to {r.ci_high:+.3f})" + (f", margin {r.margin:.2f}" if r.test == "noninferiority" else "")
+                         + (f"; primary, Holm-adjusted p{_p(r.p_holm)} (unadjusted p{_p(r.p_value)})." if str(r.primary) == "True" else f"; secondary, p{_p(r.p_value)}."))
             for r in comps[comps["status"] != "ok"].itertuples():
                 L.append(f"- **{r.id}** ({r.dataset}): {r.status}.")
             prim_rows = comps[comps["primary"]]

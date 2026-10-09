@@ -53,7 +53,7 @@ Decide the number of seeds and arms from those two benchmark files before `drjev
 ```bash
 pip install -e .            # pipeline
 pip install -e ".[train]"   # plus torch and torchvision for the specialist baseline
-pip install -e ".[test]" && IMAJEV_DIR=../imajev pytest    # 40 tests, about 2 minutes
+pip install -e ".[test]" && IMAJEV_DIR=../imajev pytest    # 41 tests, about 3 minutes
 ```
 
 ## Try it without any data
@@ -65,6 +65,11 @@ drjev run --config /tmp/drjev-demo/config/study.yaml --lock
 
 This draws about 3,800 synthetic images, runs mock models through every stage and writes
 `/tmp/drjev-demo/results/`. Every table and figure from the demo is stamped SYNTHETIC.
+
+The demo should give the same numbers in any folder and on any machine, so it doubles as a check that a new machine
+computes what this one did: compare your `results/summary.md` with `examples/demo-results/summary.md`. Only the
+date line should differ (and the timings in Table 5). A difference in the last digit can come from different
+library versions; anything larger is worth reporting.
 
 ## Real run
 

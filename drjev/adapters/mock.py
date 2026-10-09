@@ -23,6 +23,9 @@ class MockAdapter(Adapter):
         from ..splits import load_manifest
         m = load_manifest(self.cfg)
         self.truth = {r.path: (r.grade, r.gradable, r.maculopathy, r.dataset) for r in m.itertuples()}
+        # Noise is keyed to the image's identity, not its location on disk, so the same data gives the same
+        # mock answers in any folder and on any machine (the demo then doubles as a cross-machine check).
+        self.key = {r.path: f"{r.dataset}/{r.image_id}" for r in m.itertuples()}
         self.noise = float(self.run.get("noise", 0.7))          # grading error (standard deviation, in grades)
         self.sharp = float(self.run.get("sharpness", 2.5))      # >1.5 or so is over-confident
         self.shift = float(self.run.get("external_shift", 1.3))  # extra noise away from EyePACS
@@ -37,14 +40,15 @@ class MockAdapter(Adapter):
 
     def _score(self, image_path, q):
         grade, gradable, mac, dataset = self.truth[image_path]
-        r = self._rng(self.name.split("_s")[0], image_path)     # per-image latent, shared by all questions
+        key = self.key[image_path]
+        r = self._rng(self.name.split("_s")[0], key)            # per-image latent, shared by all questions
         ok = gradable != 0
         noise = self.noise * (1.0 if dataset == "eyepacs" else self.shift)
         s = (grade if pd.notna(grade) else r.uniform(0, 4)) + r.normal(0, noise)
         quality = (2.0 if ok else -2.0) + r.normal(0, 1.0)
         macv = (mac if pd.notna(mac) else float(r.random() < 0.1))
         mac_logit = 2.2 * (2 * macv - 1) + r.normal(0, 1.3)
-        rq = self._rng(self.name, image_path, q.id, q.variant)   # small per-question, per-wording jitter
+        rq = self._rng(self.name, key, q.id, q.variant)          # small per-question, per-wording jitter
         s = s + rq.normal(0, 0.15)
         if q.id == "q1_gradeable":
             p_yes = _sig(1.5 * quality)

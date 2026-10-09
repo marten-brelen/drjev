@@ -2,25 +2,27 @@
 
 **SYNTHETIC DEMO DATA: mock models on drawn images. Not study results.**
 
-Generated 2026-10-03 by drjev 0.1.0. Models analysed: 9. Test sets: aptos, mbrset, messidor2, idrid, ddr, eyepacs.
+Generated 2026-10-09 by drjev 0.2.0. Models analysed: 9. Test sets: aptos, mbrset, messidor2, idrid, ddr, eyepacs.
 
 ## Pre-specified tests
 
-- **H2_qwk** (ddr, qwk): mock_jev_ft was not shown non-inferior to mock_specialist; 0.860 versus 0.874, advantage -0.014 (95% CI -0.044 to +0.015), margin 0.05.
-- **H2_ref_sens** (ddr, ref_sens_matched): mock_jev_ft was not shown non-inferior to mock_specialist; 0.780 versus 0.832, advantage -0.051 (95% CI -0.179 to +0.040), margin 0.05.
-- **H3_ece** (ddr, ece_grade): mock_jev_ft was not shown better than mock_generative; 0.114 versus 0.161, advantage +0.047 (95% CI -0.003 to +0.095).
-- **H3_aurc** (ddr, aurc_grade): mock_jev_ft was not shown better than mock_generative; 0.157 versus 0.198, advantage +0.041 (95% CI -0.002 to +0.086).
-- **H4_ece** (ddr, ece_grade): mock_jev_ft was non-inferior to mock_specialist; 0.114 versus 0.153, advantage +0.038 (95% CI -0.011 to +0.091), margin 0.02.
-- **H4_aurc** (ddr, aurc_grade): mock_jev_ft was non-inferior to mock_specialist; 0.157 versus 0.190, advantage +0.033 (95% CI -0.013 to +0.084), margin 0.02.
-- **H5_vision_lora** (ddr, qwk): mock_jev_ft was better than mock_jev_zs; 0.860 versus 0.524, advantage +0.335 (95% CI +0.261 to +0.412).
-- **H2_qwk** (messidor2, qwk): mock_jev_ft was not shown non-inferior to mock_specialist; 0.799 versus 0.826, advantage -0.027 (95% CI -0.081 to +0.024), margin 0.05.
-- **H2_ref_sens** (messidor2, ref_sens_matched): mock_jev_ft was not shown non-inferior to mock_specialist; 0.685 versus 0.758, advantage -0.073 (95% CI -0.266 to +0.076), margin 0.05.
-- **H3_ece** (messidor2, ece_grade): mock_jev_ft was not shown better than mock_generative; 0.138 versus 0.163, advantage +0.024 (95% CI -0.036 to +0.091).
-- **H3_aurc** (messidor2, aurc_grade): mock_jev_ft was not shown better than mock_generative; 0.184 versus 0.236, advantage +0.052 (95% CI -0.016 to +0.127).
-- **H4_ece** (messidor2, ece_grade): mock_jev_ft was not shown non-inferior to mock_specialist; 0.138 versus 0.152, advantage +0.014 (95% CI -0.044 to +0.079), margin 0.02.
-- **H4_aurc** (messidor2, aurc_grade): mock_jev_ft was not shown non-inferior to mock_specialist; 0.184 versus 0.183, advantage -0.001 (95% CI -0.058 to +0.052), margin 0.02.
-- **H5_vision_lora** (messidor2, qwk): mock_jev_ft was better than mock_jev_zs; 0.799 versus 0.347, advantage +0.453 (95% CI +0.336 to +0.577).
-- **H2_st_sens** (pooled_external, st_sens_matched): mock_jev_ft was not shown non-inferior to mock_specialist; 0.843 versus 0.883, advantage -0.040 (95% CI -0.126 to +0.021), margin 0.05.
+Each test is one-sided at 2.5%. Primary tests are decided on the Holm-adjusted p-value, which corrects for running several primary tests at once; the 95% intervals shown are unadjusted, so a primary test can fail even when its interval alone would clear the margin. Secondary tests are decided on the unadjusted p-value.
+
+- **H2_qwk** (ddr, qwk): mock_jev_ft was not shown non-inferior to mock_specialist; 0.865 versus 0.867, advantage -0.002 (95% CI -0.030 to +0.024), margin 0.05; primary, Holm-adjusted p = 0.027 (unadjusted p = 0.003).
+- **H2_ref_sens** (ddr, ref_sens_matched): mock_jev_ft was not shown non-inferior to mock_specialist; 0.855 versus 0.925, advantage -0.070 (95% CI -0.146 to +0.005), margin 0.05; primary, Holm-adjusted p = 1.000 (unadjusted p = 0.658).
+- **H3_ece** (ddr, ece_grade): mock_jev_ft was not shown better than mock_generative; 0.106 versus 0.109, advantage +0.003 (95% CI -0.037 to +0.054); primary, Holm-adjusted p = 1.000 (unadjusted p = 0.392).
+- **H3_aurc** (ddr, aurc_grade): mock_jev_ft was not shown better than mock_generative; 0.164 versus 0.167, advantage +0.003 (95% CI -0.040 to +0.047); primary, Holm-adjusted p = 1.000 (unadjusted p = 0.419).
+- **H4_ece** (ddr, ece_grade): mock_jev_ft was not shown non-inferior to mock_specialist; 0.106 versus 0.137, advantage +0.031 (95% CI -0.019 to +0.080), margin 0.02; secondary, p = 0.027.
+- **H4_aurc** (ddr, aurc_grade): mock_jev_ft was not shown non-inferior to mock_specialist; 0.164 versus 0.175, advantage +0.011 (95% CI -0.036 to +0.056), margin 0.02; secondary, p = 0.100.
+- **H5_vision_lora** (ddr, qwk): mock_jev_ft was better than mock_jev_zs; 0.865 versus 0.455, advantage +0.409 (95% CI +0.329 to +0.499); secondary, p = 0.003.
+- **H2_qwk** (messidor2, qwk): mock_jev_ft was not shown non-inferior to mock_specialist; 0.783 versus 0.835, advantage -0.052 (95% CI -0.100 to -0.008), margin 0.05; primary, Holm-adjusted p = 1.000 (unadjusted p = 0.571).
+- **H2_ref_sens** (messidor2, ref_sens_matched): mock_jev_ft was not shown non-inferior to mock_specialist; 0.734 versus 0.871, advantage -0.137 (95% CI -0.256 to +0.000), margin 0.05; primary, Holm-adjusted p = 1.000 (unadjusted p = 0.887).
+- **H3_ece** (messidor2, ece_grade): mock_jev_ft was not shown better than mock_generative; 0.160 versus 0.101, advantage -0.059 (95% CI -0.111 to +0.005); primary, Holm-adjusted p = 1.000 (unadjusted p = 0.957).
+- **H3_aurc** (messidor2, aurc_grade): mock_jev_ft was not shown better than mock_generative; 0.209 versus 0.226, advantage +0.017 (95% CI -0.056 to +0.086); primary, Holm-adjusted p = 1.000 (unadjusted p = 0.382).
+- **H4_ece** (messidor2, ece_grade): mock_jev_ft was not shown non-inferior to mock_specialist; 0.160 versus 0.137, advantage -0.022 (95% CI -0.084 to +0.036), margin 0.02; secondary, p = 0.495.
+- **H4_aurc** (messidor2, aurc_grade): mock_jev_ft was not shown non-inferior to mock_specialist; 0.209 versus 0.200, advantage -0.009 (95% CI -0.064 to +0.042), margin 0.02; secondary, p = 0.379.
+- **H5_vision_lora** (messidor2, qwk): mock_jev_ft was better than mock_jev_zs; 0.783 versus 0.484, advantage +0.299 (95% CI +0.200 to +0.380); secondary, p = 0.003.
+- **H2_st_sens** (pooled_external, st_sens_matched): mock_jev_ft was not shown non-inferior to mock_specialist; 0.832 versus 0.848, advantage -0.016 (95% CI -0.088 to +0.051), margin 0.05; secondary, p = 0.159.
 
 ## Decision gate G3
 
@@ -28,11 +30,11 @@ The positive-paper condition (every primary H2 test passed after Holm adjustment
 
 ## Headline numbers on the primary external test sets
 
-- mock_jev_ft (language + vision LoRA). messidor2: QWK 0.799 (0.745 to 0.844), referable AUROC 0.920 (0.889 to 0.946), grade ECE 0.138; ddr: QWK 0.860 (0.830 to 0.884), referable AUROC 0.960 (0.945 to 0.973), grade ECE 0.114.
-- mock_generative (generative). messidor2: QWK 0.775 (0.715 to 0.824), referable AUROC 0.939 (0.905 to 0.966), grade ECE 0.163; ddr: QWK 0.786 (0.731 to 0.833), referable AUROC 0.928 (0.901 to 0.952), grade ECE 0.161.
-- mock_specialist (specialist). messidor2: QWK 0.826 (0.772 to 0.870), referable AUROC 0.948 (0.917 to 0.972), grade ECE 0.152; ddr: QWK 0.874 (0.843 to 0.899), referable AUROC 0.967 (0.945 to 0.983), grade ECE 0.153.
-- mock_jev_zs (zero-shot). messidor2: QWK 0.347 (0.229 to 0.453), referable AUROC 0.737 (0.661 to 0.807), grade ECE 0.117; ddr: QWK 0.524 (0.441 to 0.601), referable AUROC 0.818 (0.768 to 0.866), grade ECE 0.138.
-- mock_noabstain_zs (zero-shot). messidor2: QWK 0.361 (0.235 to 0.482), referable AUROC 0.735 (0.660 to 0.807), grade ECE 0.113; ddr: QWK 0.349 (0.250 to 0.442), referable AUROC 0.727 (0.670 to 0.780), grade ECE 0.128.
+- mock_jev_ft (language + vision LoRA). messidor2: QWK 0.783 (0.729 to 0.820), referable AUROC 0.925 (0.904 to 0.950), grade ECE 0.160; ddr: QWK 0.865 (0.833 to 0.888), referable AUROC 0.962 (0.945 to 0.975), grade ECE 0.106.
+- mock_generative (generative). messidor2: QWK 0.785 (0.723 to 0.843), referable AUROC 0.939 (0.903 to 0.973), grade ECE 0.101; ddr: QWK 0.809 (0.765 to 0.846), referable AUROC 0.946 (0.918 to 0.966), grade ECE 0.109.
+- mock_specialist (specialist). messidor2: QWK 0.835 (0.788 to 0.875), referable AUROC 0.966 (0.945 to 0.983), grade ECE 0.137; ddr: QWK 0.867 (0.838 to 0.891), referable AUROC 0.975 (0.961 to 0.989), grade ECE 0.137.
+- mock_jev_zs (zero-shot). messidor2: QWK 0.484 (0.390 to 0.587), referable AUROC 0.794 (0.727 to 0.857), grade ECE 0.132; ddr: QWK 0.455 (0.358 to 0.539), referable AUROC 0.771 (0.719 to 0.821), grade ECE 0.124.
+- mock_noabstain_zs (zero-shot). messidor2: QWK 0.309 (0.191 to 0.407), referable AUROC 0.710 (0.635 to 0.772), grade ECE 0.095; ddr: QWK 0.452 (0.352 to 0.541), referable AUROC 0.770 (0.715 to 0.813), grade ECE 0.140.
 
 ## Calibration notes
 
